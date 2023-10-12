@@ -8,20 +8,33 @@ resource "aws_s3_bucket" "cs_data_bucket" {
 
   force_destroy = false
 
-  server_side_encryption_configuration {
-    rule {
-      apply_server_side_encryption_by_default {
-        kms_master_key_id = aws_kms_key.cs_data_bucket_key.arn
-        sse_algorithm     = "aws:kms"
-      }
+  tags = {
+    Name = local.name
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "cs_data_bucket_encryption" {
+  bucket = aws_s3_bucket.cs_data_bucket.id
+  rule {
+    apply_server_side_encryption_by_default {
+      kms_master_key_id = aws_kms_key.cs_data_bucket_key.arn
+      sse_algorithm     = "aws:kms"
     }
   }
+}
 
-  versioning {
-    enabled = true
+resource "aws_s3_bucket_versioning" "cs_data_bucket_versioning" {
+  bucket = aws_s3_bucket.cs_data_bucket.id
+  versioning_configuration {
+    status = "Enabled"
   }
+  
+}
 
-  lifecycle_rule {
+resource "aws_s3_bucket_lifecycle_configuration" "cs_data_bucket_lifecycle" {
+  bucket = aws_s3_bucket.cs_data_bucket.id
+
+  rule {
     id      = "cleanup_after_30_days"
     enabled = true
 
@@ -35,10 +48,6 @@ resource "aws_s3_bucket" "cs_data_bucket" {
     expiration {
       days = 31
     }
-  }
-
-  tags = {
-    Name = local.name
   }
 }
 
