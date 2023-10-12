@@ -41,7 +41,9 @@ resource "aws_s3_bucket_lifecycle_configuration" "cs_data_bucket_lifecycle" {
     status  = "Enabled"
     id      = "cleanup_after_30_days"
 
-    abort_incomplete_multipart_upload_days = 7
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
 
     transition {
       days          = 30
