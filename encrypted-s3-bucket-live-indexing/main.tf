@@ -13,11 +13,6 @@ resource "aws_s3_bucket" "cs_data_bucket" {
   }
 }
 
-resource "aws_s3_bucket_acl" "cs_data_bucket_acl" {
-  bucket = aws_s3_bucket.cs_data_bucket.id
-  acl = "private"
-}
-
 resource "aws_s3_bucket_server_side_encryption_configuration" "cs_data_bucket_encryption" {
   bucket = aws_s3_bucket.cs_data_bucket.id
   rule {
