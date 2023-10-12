@@ -122,8 +122,11 @@ resource "aws_kms_alias" "cs_data_bucket_key" {
 ##
 
 resource "aws_iam_role" "cs_logging_server_side_role" {
-  name = "cs_logging_server_side_${local.name}"
-
+  name = "cs_logs_${local.name}"
+  tags = {
+    resource = "chaossearch"
+    purpose = "server-side-logging"
+  }
   assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -157,8 +160,7 @@ resource "aws_iam_role_policy_attachment" "cs_logging_server_side_role_policy_at
 }
 
 resource "aws_iam_policy" "cs_logging_server_side_role_policy" {
-  name = "cs_logging_server_side_${local.name}"
-
+  name = "cs_logs_${local.name}"
   #aws:userid
   policy = <<EOF
 {
