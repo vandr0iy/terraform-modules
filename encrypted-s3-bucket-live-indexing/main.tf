@@ -2,6 +2,8 @@ locals {
   name = "${var.cs_data_bucket}-${var.region}"
 }
 
+data "aws_caller_identity" "current" {}
+
 resource "aws_s3_bucket" "cs_data_bucket" {
   bucket = local.name
   force_destroy = false
@@ -182,7 +184,7 @@ resource "aws_iam_policy" "cs_logging_server_side_role_policy" {
                 "sqs:GetQueueAttributes"
             ],
             "Resource": [
-                "arn:aws:sqs:*:${var.aws_account_number}:*"
+                "arn:aws:sqs:*:${data.aws_caller_identity.current.account_id}:*"
             ],
             "Effect": "Allow"
         },
@@ -205,8 +207,8 @@ resource "aws_iam_policy" "cs_logging_server_side_role_policy" {
                 "s3:ListBucket"
             ],
             "Resource": [
-                "arn:aws:s3:::${var.data_bucket_name}",
-                "arn:aws:s3:::${var.data_bucket_name}/*"
+                "arn:aws:s3:::${aws_s3_bucket.cs_data_bucket.id}",
+                "arn:aws:s3:::${aws_s3_bucket.cs_data_bucket.id}/*"
             ],
             "Effect": "Allow"
         },
