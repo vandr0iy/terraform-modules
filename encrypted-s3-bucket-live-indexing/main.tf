@@ -136,25 +136,21 @@ resource "aws_kms_alias" "cs_data_bucket_key" {
 ##
 
 resource "aws_iam_role" "cs_logging_server_side_role" {
-  name = "cs_logs_${local.name}"
-  tags = {
-    resource = "chaossearch"
-    purpose = "server-side-logging"
-  }
+  name = "cs_logs_${var.cs_external_id}"
+
   assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
-  "Statement": [{
-      "Action": "sts:AssumeRole",
-      "Principal": {
-        "Service": "ec2.amazonaws.com"
-      },
-      "Effect": "Allow"
-    },
+  "Statement": [
     {
       "Action": "sts:AssumeRole",
       "Principal": {
-        "AWS": "arn:aws:iam::515570774723:root"
+        "AWS": [
+            "arn:aws:iam::268357474475:root",
+            "arn:aws:iam::291240392334:root",
+            "arn:aws:iam::515570774723:root",
+            "arn:aws:iam::079363773741:root"
+        ]
       },
       "Effect": "Allow",
       "Condition": {
@@ -168,63 +164,85 @@ resource "aws_iam_role" "cs_logging_server_side_role" {
 EOF
 }
 
-resource "aws_iam_role_policy_attachment" "cs_logging_server_side_role_policy_attach" {
-  role       = aws_iam_role.cs_logging_server_side_role.name
-  policy_arn = aws_iam_policy.cs_logging_server_side_role_policy.arn
-}
-
 resource "aws_iam_policy" "cs_logging_server_side_role_policy" {
-  name = "cs_logs_${local.name}"
+  name = "cs_logs_${var.cs_external_id}"
+
   #aws:userid
   policy = <<EOF
 {
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "s3:Get*",
-        "s3:List*",
-        "s3:PutObjectTagging"
-      ],
-      "Resource": [
-        "${aws_s3_bucket.cs_data_bucket.arn}",
-        "${aws_s3_bucket.cs_data_bucket.arn}/*"
-      ]
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "s3:ListAllMyBuckets"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Effect": "Allow",
-      "Action": "s3:*",
-      "Resource": [
-        "arn:aws:s3:::cs-${var.cs_external_id}"
-      ]
-    },
-    {
-      "Effect": "Allow",
-      "Action": "s3:*",
-      "Resource":
-        [
-          "arn:aws:s3:::cs-${var.cs_external_id}/*"
-        ]
-    },
-    {
-      "Action": [
-          "kms:GenerateDataKey",
-          "kms:Decrypt"
-      ],
-      "Effect": "Allow",
-      "Resource": [
-        "${aws_kms_key.cs_data_bucket_key.arn}"
-      ]
-    }
-  ]
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AccessSQSObservabilityIngest",
+            "Action": [
+                "sqs:DeleteMessage",
+                "sqs:DeleteMessageBatch",
+                "sqs:ReceiveMessage",
+                "sqs:GetQueueUrl",
+                "sqs:GetQueueAttributes"
+            ],
+            "Resource": [
+                "arn:aws:sqs:*:${var.aws_account_number}:*"
+            ],
+            "Effect": "Allow"
+        },
+        {
+            "Sid": "AccessKMSNeedMimimumForRequiredBuckets",
+            "Action": [
+                "kms:*"
+            ],
+            "Resource": "*",
+            "Effect": "Allow"
+        },
+        {
+            "Sid": "ReadAccessDataBuckets",
+            "Action": [
+                "s3:GetObject",
+                "s3:GetObjectTagging",
+                "s3:PutObjectTagging",
+                "s3:GetBucketLocation",
+                "s3:GetBucketTagging",
+                "s3:ListBucket"
+            ],
+            "Resource": [
+                "arn:aws:s3:::${var.data_bucket_name}",
+                "arn:aws:s3:::${var.data_bucket_name}/*"
+            ],
+            "Effect": "Allow"
+        },
+        {
+          "Sid": "ListAllBucketsS3UIPermission",
+          "Action": [
+            "s3:ListAllMyBuckets"
+          ],
+          "Resource": [
+            "arn:aws:s3:::*"
+          ],
+          "Effect": "Allow"
+        },
+        {
+            "Sid": "WriteAccessIndexedMetadataBucket",
+            "Action": [
+                "s3:GetObjectTagging",
+                "s3:PutObjectTagging",
+                "s3:ListBucket",
+                "s3:CreateBucket",
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:DeleteObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::cs-${var.cs_external_id}",
+                "arn:aws:s3:::cs-${var.cs_external_id}/*"
+            ],
+            "Effect": "Allow"
+        }
+    ]
 }
 EOF
+}
+
+resource "aws_iam_role_policy_attachment" "cs_logging_server_side_role_policy_attach" {
+  role       = aws_iam_role.cs_logging_server_side_role.name
+  policy_arn = aws_iam_policy.cs_logging_server_side_role_policy.arn
 }
