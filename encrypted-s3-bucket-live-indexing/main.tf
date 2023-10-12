@@ -4,13 +4,16 @@ locals {
 
 resource "aws_s3_bucket" "cs_data_bucket" {
   bucket = local.name
-  acl    = "private"
-
   force_destroy = false
 
   tags = {
     Name = local.name
   }
+}
+
+resource "aws_s3_bucket_acl" "cs_data_bucket_acl" {
+  bucket = aws_s3_bucket.cs_data_bucket.id
+  acl = "private"
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "cs_data_bucket_encryption" {
@@ -35,8 +38,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "cs_data_bucket_lifecycle" {
   bucket = aws_s3_bucket.cs_data_bucket.id
 
   rule {
+    status  = "Enabled"
     id      = "cleanup_after_30_days"
-    enabled = true
 
     abort_incomplete_multipart_upload_days = 7
 
